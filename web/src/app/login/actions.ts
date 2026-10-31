@@ -112,32 +112,6 @@ export async function signup(formData: FormData) {
 }
 
 /**
- * GOOGLE SIGN-IN
- */
-export async function signInWithGoogle() {
-  const siteUrl = getSiteUrl();
-
-  if (!siteUrl) {
-    redirect("/login?error=configuration");
-  }
-
-  const supabase = await createClient();
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${siteUrl}/auth/callback`,
-    },
-  });
-
-  if (error || !data.url) {
-    redirect("/login?error=google");
-  }
-
-  redirect(data.url);
-}
-
-/**
  * REQUEST PASSWORD RESET EMAIL
  */
 export async function requestPasswordReset(formData: FormData) {

@@ -3,7 +3,6 @@ import Link from "next/link";
 import {
   login,
   signup,
-  signInWithGoogle,
 } from "./actions";
 
 export const instant = false;
@@ -113,20 +112,10 @@ export default async function LoginPage({
             </button>
           </form>
 
-          <div className="auth-divider">
-            <span>OR</span>
-          </div>
+          
 
           {/* Google authentication */}
-          <form action={signInWithGoogle}>
-            <button
-              type="submit"
-              className="auth-button google"
-            >
-              <span aria-hidden="true">G</span>
-              Continue with Google
-            </button>
-          </form>
+          
         </div>
 
         <footer className="auth-footer">
@@ -255,21 +244,6 @@ export default async function LoginPage({
           border: 1px solid #343d50;
           background: transparent;
           color: white;
-        }
-
-        .google {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 10px;
-          border: 1px solid #343d50;
-          background: #171e2d;
-          color: white;
-        }
-
-        .google span {
-          font-size: 18px;
-          font-weight: 800;
         }
 
         .auth-button:hover {
