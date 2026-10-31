@@ -1,115 +1,328 @@
 
-import { login, signup } from "./actions";
+import Link from "next/link";
+import {
+  login,
+  signup,
+  signInWithGoogle,
+} from "./actions";
+
 export const instant = false;
+
+type PageProps = {
+  searchParams: Promise<{
+    error?: string;
+    success?: string;
+  }>;
+};
+
 const errorMessages: Record<string, string> = {
-  "invalid-input": "Please check your email, password and name.",
-  "invalid-credentials": "Incorrect email or password. Please try again.",
-  "signup-failed": "Account creation failed. Please try again.",
-  configuration: "Authentication configuration is incomplete.",
-  auth: "Your confirmation link is invalid or has expired.",
-  logout: "We could not complete logout. Please try again.",
+  "invalid-credentials": "Incorrect email or password.",
+  "email-not-confirmed": "Please confirm your email before signing in.",
+  "google": "Google sign-in failed. Please try again.",
+  "confirmation": "Your confirmation link is invalid or expired. Please request another one.",
+  "missing-email": "Please enter your email address.",
+  "send-failed": "We couldn't send the password reset email.",
+  "configuration": "Authentication configuration error.",
 };
 
 const successMessages: Record<string, string> = {
-  "check-email": "Account request received. Check your email to confirm your account.",
-  "logged-out": "You have successfully logged out.",
+  "signup": "Account created! Check your email to confirm your account.",
+  "password-updated": "Password updated successfully. Please sign in.",
 };
 
 export default async function LoginPage({
   searchParams,
-}: PageProps<"/login">) {
+}: PageProps) {
   const params = await searchParams;
 
-  const error =
-    typeof params.error === "string" ? params.error : "";
+  const errorMessage = params.error
+    ? errorMessages[params.error] ?? "Something went wrong. Please try again."
+    : null;
 
-  const message =
-    typeof params.message === "string" ? params.message : "";
+  const successMessage = params.success
+    ? successMessages[params.success] ?? null
+    : null;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 text-white shadow-xl">
+    <main className="auth-page">
+      <section className="auth-card">
+        <header className="auth-header">
+          <div className="auth-logo">S</div>
+          <h1>SubscriptIQ</h1>
+          <p>Take control of your subscriptions.</p>
+        </header>
 
-        <h1 className="text-3xl font-bold tracking-tight">
-          SubscriptIQ
-        </h1>
+        <div className="auth-content">
+          <h2>Welcome back</h2>
+          <p>Sign in or create your account.</p>
 
-        <p className="mt-2 text-slate-400">
-          Bring all your subscriptions into one place.
-        </p>
+          {errorMessage && (
+            <div className="auth-message error" role="alert">
+              {errorMessage}
+            </div>
+          )}
 
-        {errorMessages[error] && (
-          <p
-            role="alert"
-            className="mt-6 rounded-lg border border-red-800 bg-red-950/50 p-3 text-sm text-red-300"
-          >
-            {errorMessages[error]}
+          {successMessage && (
+            <div className="auth-message success" role="status">
+              {successMessage}
+            </div>
+          )}
+
+          {/* Email and password authentication */}
+          <form className="auth-form">
+            <label htmlFor="email">Email address</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
+
+            <div className="password-heading">
+              <label htmlFor="password">Password</label>
+              <Link href="/forgot-password">
+                Forgot password?
+              </Link>
+            </div>
+
+            <input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              required
+            />
+
+            <button
+              type="submit"
+              formAction={login}
+              className="auth-button primary"
+            >
+              Sign In
+            </button>
+
+            <button
+              type="submit"
+              formAction={signup}
+              className="auth-button secondary"
+            >
+              Create Account
+            </button>
+          </form>
+
+          <div className="auth-divider">
+            <span>OR</span>
+          </div>
+
+          {/* Google authentication */}
+          <form action={signInWithGoogle}>
+            <button
+              type="submit"
+              className="auth-button google"
+            >
+              <span aria-hidden="true">G</span>
+              Continue with Google
+            </button>
+          </form>
+        </div>
+
+        <footer className="auth-footer">
+          <p>
+            By continuing, you agree to use SubscriptIQ responsibly.
           </p>
-        )}
+        </footer>
+      </section>
 
-        {successMessages[message] && (
-          <p
-            role="status"
-            className="mt-6 rounded-lg border border-green-800 bg-green-950/50 p-3 text-sm text-green-300"
-          >
-            {successMessages[message]}
-          </p>
-        )}
+      <style>{`
+        .auth-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 32px 16px;
+          background: #080b14;
+          color: #f8fafc;
+        }
 
-        <form className="mt-8 space-y-4">
+        .auth-card {
+          width: 100%;
+          max-width: 430px;
+          padding: 36px;
+          border: 1px solid #252b3a;
+          border-radius: 18px;
+          background: #101522;
+          box-shadow: 0 20px 70px rgba(0,0,0,.35);
+        }
 
-          <input
-            name="fullName"
-            type="text"
-            placeholder="Full name (for new accounts)"
-            autoComplete="name"
-            maxLength={100}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
-          />
+        .auth-header {
+          text-align: center;
+          margin-bottom: 32px;
+        }
 
-          <input
-            name="email"
-            type="email"
-            placeholder="Email address"
-            autoComplete="email"
-            required
-            maxLength={254}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
-          />
+        .auth-logo {
+          width: 48px;
+          height: 48px;
+          display: grid;
+          place-items: center;
+          margin: 0 auto 12px;
+          border-radius: 14px;
+          background: #7656f6;
+          font-size: 24px;
+          font-weight: 800;
+        }
 
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            autoComplete="current-password"
-            required
-            minLength={6}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
-          />
+        .auth-header h1 {
+          margin: 0;
+          font-size: 25px;
+        }
 
-          <button
-            type="submit"
-            formAction={login}
-            className="w-full rounded-lg bg-blue-600 p-3 font-semibold hover:bg-blue-500"
-          >
-            Log in
-          </button>
+        .auth-header p,
+        .auth-content > p {
+          color: #94a3b8;
+          font-size: 14px;
+        }
 
-          <button
-            type="submit"
-            formAction={signup}
-            className="w-full rounded-lg border border-slate-700 p-3 font-semibold hover:bg-slate-800"
-          >
-            Create account
-          </button>
+        .auth-content h2 {
+          margin-bottom: 4px;
+          font-size: 22px;
+        }
 
-        </form>
+        .auth-form {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-top: 24px;
+        }
 
-        <p className="mt-6 text-center text-sm text-slate-500">
-          Intelligent subscription management.
-        </p>
+        .auth-form label {
+          font-size: 13px;
+          font-weight: 600;
+        }
 
-      </div>
+        .auth-form input {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 13px 14px;
+          border: 1px solid #30394b;
+          border-radius: 9px;
+          outline: none;
+          background: #0b1020;
+          color: white;
+          font-size: 14px;
+        }
+
+        .auth-form input:focus {
+          border-color: #8b70ff;
+        }
+
+        .password-heading {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 6px;
+        }
+
+        .password-heading a {
+          color: #a994ff;
+          font-size: 12px;
+          text-decoration: none;
+        }
+
+        .password-heading a:hover {
+          text-decoration: underline;
+        }
+
+        .auth-button {
+          width: 100%;
+          padding: 13px;
+          border: 0;
+          border-radius: 9px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 700;
+        }
+
+        .primary {
+          margin-top: 10px;
+          background: #7656f6;
+          color: white;
+        }
+
+        .secondary {
+          border: 1px solid #343d50;
+          background: transparent;
+          color: white;
+        }
+
+        .google {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 10px;
+          border: 1px solid #343d50;
+          background: #171e2d;
+          color: white;
+        }
+
+        .google span {
+          font-size: 18px;
+          font-weight: 800;
+        }
+
+        .auth-button:hover {
+          opacity: .88;
+        }
+
+        .auth-divider {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin: 22px 0;
+          color: #64748b;
+          font-size: 11px;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+          content: "";
+          flex: 1;
+          height: 1px;
+          background: #30394b;
+        }
+
+        .auth-message {
+          padding: 12px;
+          margin-top: 16px;
+          border-radius: 8px;
+          font-size: 13px;
+        }
+
+        .error {
+          background: #3b1720;
+          color: #fda4af;
+        }
+
+        .success {
+          background: #123323;
+          color: #86efac;
+        }
+
+        .auth-footer {
+          margin-top: 28px;
+          text-align: center;
+          color: #64748b;
+          font-size: 11px;
+        }
+
+        @media (max-width: 480px) {
+          .auth-card {
+            padding: 24px;
+          }
+        }
+      `}</style>
     </main>
   );
 }

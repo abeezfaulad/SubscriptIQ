@@ -109,3 +109,64 @@ export async function logout() {
 
   redirect("/login?message=logged-out");
 }
+export async function requestPasswordReset(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim();
+
+  if (!email) {
+    redirect("/forgot-password?error=missing-email");
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
+  if (!siteUrl) {
+    redirect("/forgot-password?error=configuration");
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${siteUrl.replace(/\/$/, "")}/auth/confirm?next=/reset-password`,
+  });
+
+  if (error) {
+    redirect("/forgot-password?error=send-failed");
+  }
+
+  redirect("/forgot-password?sent=1");
+}
+
+export async function updatePassword(formData: FormData) {
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(
+    formData.get("confirmPassword") ?? ""
+  );
+
+  if (password.length < 8) {
+    redirect("/reset-password?error=weak-password");
+  }
+
+  if (password !== confirmPassword) {
+    redirect("/reset-password?error=password-mismatch");
+  }
+
+  const supabase = await createClient();
+
+  const { data, error: userError } = await supabase.auth.getUser();
+
+  if (userError || !data.user) {
+    redirect("/forgot-password?error=invalid-link");
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password,
+  });
+
+  if (error) {
+    redirect("/reset-password?error=update-failed");
+  }
+
+  await supabase.auth.signOut();
+
+  redirect("/login?success=password-updated");
+}
+emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm?next=/dashboard`,
