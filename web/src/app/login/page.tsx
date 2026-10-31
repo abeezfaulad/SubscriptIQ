@@ -1,6 +1,7 @@
+
 import { login, signup } from "./actions";
 
-export default function LoginPage() {
+export default function LoginPage(_props: PageProps<"/login">) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 text-white shadow-xl">
@@ -18,6 +19,7 @@ export default function LoginPage() {
             name="fullName"
             type="text"
             placeholder="Full name (for new accounts)"
+            autoComplete="name"
             className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
           />
 
@@ -25,6 +27,7 @@ export default function LoginPage() {
             name="email"
             type="email"
             placeholder="Email address"
+            autoComplete="email"
             required
             className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
           />
@@ -39,6 +42,7 @@ export default function LoginPage() {
           />
 
           <button
+            type="submit"
             formAction={login}
             className="w-full rounded-lg bg-blue-600 p-3 font-semibold hover:bg-blue-500"
           >
@@ -46,6 +50,7 @@ export default function LoginPage() {
           </button>
 
           <button
+            type="submit"
             formAction={signup}
             className="w-full rounded-lg border border-slate-700 p-3 font-semibold hover:bg-slate-800"
           >
@@ -61,3 +66,4 @@ export default function LoginPage() {
     </main>
   );
 }
+
