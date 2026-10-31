@@ -1,44 +1,63 @@
-"use server";
+import { login, signup } from "./actions";
 
-import { redirect } from "next/navigation";
-import { createClient } from "../../lib/supabase/server";
+export default function LoginPage() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
+      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 text-white shadow-xl">
 
-export async function login(formData: FormData) {
-  const email = String(formData.get("email") ?? "");
-  const password = String(formData.get("password") ?? "");
+        <h1 className="text-3xl font-bold tracking-tight">
+          SubscriptIQ
+        </h1>
 
-  const supabase = await createClient();
+        <p className="mt-2 text-slate-400">
+          Bring all your subscriptions into one place.
+        </p>
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+        <form className="mt-8 space-y-4">
+          <input
+            name="fullName"
+            type="text"
+            placeholder="Full name (for new accounts)"
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
+          />
 
-  if (error) {
-    redirect("/login?error=login");
-  }
+          <input
+            name="email"
+            type="email"
+            placeholder="Email address"
+            required
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
+          />
 
-  redirect("/dashboard");
+          <input
+            name="password"
+            type="password"
+            placeholder="Password"
+            required
+            minLength={6}
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
+          />
+
+          <button
+            formAction={login}
+            className="w-full rounded-lg bg-blue-600 p-3 font-semibold hover:bg-blue-500"
+          >
+            Log in
+          </button>
+
+          <button
+            formAction={signup}
+            className="w-full rounded-lg border border-slate-700 p-3 font-semibold hover:bg-slate-800"
+          >
+            Create account
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-slate-500">
+          Intelligent subscription management.
+        </p>
+
+      </div>
+    </main>
+  );
 }
-
-export async function signup(formData: FormData) {
-  const email = String(formData.get("email") ?? "");
-  const password = String(formData.get("password") ?? "");
-
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
-    },
-  });
-
-  if (error) {
-    redirect("/login?error=signup");
-  }
-
-  redirect("/login?message=check-email");
-}
-
