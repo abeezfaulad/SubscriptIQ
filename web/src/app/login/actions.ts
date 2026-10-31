@@ -4,22 +4,36 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
 
-function getField(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
+/**
+ * Get the configured application URL.
+ * Works with localhost during development and Vercel in production.
+ */
+function getSiteUrl(): string | null {
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
+  if (!configuredUrl) {
+    return null;
+  }
+
+  try {
+    return new URL(configuredUrl).origin;
+  } catch {
+    return null;
+  }
 }
 
+/**
+ * EMAIL LOGIN
+ */
 export async function login(formData: FormData) {
-  const email = getField(formData, "email").toLowerCase();
-  const password = formData.get("password");
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
 
-  if (
-    !email ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-    typeof password !== "string" ||
-    !password
-  ) {
-    redirect("/login?error=invalid-input");
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || !password) {
+    redirect("/login?error=invalid-credentials");
   }
 
   const supabase = await createClient();
@@ -30,47 +44,42 @@ export async function login(formData: FormData) {
   });
 
   if (error) {
+    const errorCode = error.code?.toLowerCase() ?? "";
+    const errorMessage = error.message.toLowerCase();
+
+    if (
+      errorCode === "email_not_confirmed" ||
+      errorMessage.includes("email not confirmed")
+    ) {
+      redirect("/login?error=email-not-confirmed");
+    }
+
     redirect("/login?error=invalid-credentials");
   }
 
   redirect("/dashboard");
 }
 
+/**
+ * EMAIL SIGNUP
+ */
 export async function signup(formData: FormData) {
-  const email = getField(formData, "email").toLowerCase();
-  const password = formData.get("password");
-  const fullName = getField(formData, "fullName");
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
 
-  if (
-    !email ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-    typeof password !== "string" ||
-    password.length < 6 ||
-    fullName.length > 100
-  ) {
-    redirect("/login?error=invalid-input");
+  const password = String(formData.get("password") ?? "");
+
+  // Full name is optional.
+  const fullName = String(formData.get("fullName") ?? "").trim();
+
+  if (!email || !password || password.length < 8) {
+    redirect("/login?error=signup-failed");
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const siteUrl = getSiteUrl();
 
   if (!siteUrl) {
-    redirect("/login?error=configuration");
-  }
-
-  let emailRedirectTo: string;
-
-  try {
-    const parsedUrl = new URL(siteUrl);
-
-    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-      redirect("/login?error=configuration");
-    }
-
-    emailRedirectTo = new URL(
-      "/auth/callback",
-      parsedUrl.origin
-    ).toString();
-  } catch {
     redirect("/login?error=configuration");
   }
 
@@ -80,10 +89,12 @@ export async function signup(formData: FormData) {
     email,
     password,
     options: {
-      data: {
-        full_name: fullName,
-      },
-      emailRedirectTo,
+      emailRedirectTo: `${siteUrl}/auth/confirm?next=/dashboard`,
+      data: fullName
+        ? {
+            full_name: fullName,
+          }
+        : {},
     },
   });
 
@@ -91,32 +102,54 @@ export async function signup(formData: FormData) {
     redirect("/login?error=signup-failed");
   }
 
+  // If email confirmation is disabled, a session may be returned.
   if (data.session) {
     redirect("/dashboard");
   }
 
-  redirect("/login?message=check-email");
+  // Otherwise, ask the user to confirm their email.
+  redirect("/login?success=signup");
 }
 
-export async function logout() {
-  const supabase = await createClient();
+/**
+ * GOOGLE SIGN-IN
+ */
+export async function signInWithGoogle() {
+  const siteUrl = getSiteUrl();
 
-  const { error } = await supabase.auth.signOut();
-
-  if (error) {
-    redirect("/login?error=logout");
+  if (!siteUrl) {
+    redirect("/login?error=configuration");
   }
 
-  redirect("/login?message=logged-out");
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${siteUrl}/auth/callback`,
+    },
+  });
+
+  if (error || !data.url) {
+    redirect("/login?error=google");
+  }
+
+  redirect(data.url);
 }
+
+/**
+ * REQUEST PASSWORD RESET EMAIL
+ */
 export async function requestPasswordReset(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
 
   if (!email) {
     redirect("/forgot-password?error=missing-email");
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const siteUrl = getSiteUrl();
 
   if (!siteUrl) {
     redirect("/forgot-password?error=configuration");
@@ -125,7 +158,7 @@ export async function requestPasswordReset(formData: FormData) {
   const supabase = await createClient();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl.replace(/\/$/, "")}/auth/confirm?next=/reset-password`,
+    redirectTo: `${siteUrl}/auth/confirm?next=/reset-password`,
   });
 
   if (error) {
@@ -135,8 +168,12 @@ export async function requestPasswordReset(formData: FormData) {
   redirect("/forgot-password?sent=1");
 }
 
+/**
+ * UPDATE PASSWORD
+ */
 export async function updatePassword(formData: FormData) {
   const password = String(formData.get("password") ?? "");
+
   const confirmPassword = String(
     formData.get("confirmPassword") ?? ""
   );
@@ -151,6 +188,7 @@ export async function updatePassword(formData: FormData) {
 
   const supabase = await createClient();
 
+  // Verify that the recovery session is valid.
   const { data, error: userError } = await supabase.auth.getUser();
 
   if (userError || !data.user) {
@@ -165,8 +203,20 @@ export async function updatePassword(formData: FormData) {
     redirect("/reset-password?error=update-failed");
   }
 
+  // Sign out so the user can log in with the new password.
   await supabase.auth.signOut();
 
   redirect("/login?success=password-updated");
 }
-emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm?next=/dashboard`,
+
+/**
+ * LOGOUT
+ */
+export async function logout() {
+  const supabase = await createClient();
+
+  await supabase.auth.signOut();
+
+  redirect("/login");
+}
+
