@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "../../lib/supabase/server";
 import { logout } from "../login/actions";
 import { redirect } from "next/navigation";
 
