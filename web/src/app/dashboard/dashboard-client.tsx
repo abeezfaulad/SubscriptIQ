@@ -1,5 +1,5 @@
 "use client";
-
+import "./dashboard.css";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { logout } from "../login/actions";
 
