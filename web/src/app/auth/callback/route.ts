@@ -1,19 +1,44 @@
+
 import { NextResponse } from "next/server";
 import { createClient } from "../../../lib/supabase/server";
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const requestUrl = new URL(request.url);
+  const origin = requestUrl.origin;
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const code = requestUrl.searchParams.get("code");
+  const requestedNext = requestUrl.searchParams.get("next");
 
-    if (!error) {
-      return NextResponse.redirect(new URL(next, origin));
+  // Only allow redirects to paths within this application.
+  let redirectTo = new URL("/dashboard", origin);
+
+  if (
+    requestedNext?.startsWith("/") &&
+    !requestedNext.startsWith("//")
+  ) {
+    const candidate = new URL(requestedNext, origin);
+
+    if (candidate.origin === origin) {
+      redirectTo = candidate;
     }
   }
 
-  return NextResponse.redirect(new URL("/login?error=auth", origin));
+  if (!code) {
+    return NextResponse.redirect(
+      new URL("/login?error=auth", origin)
+    );
+  }
+
+  const supabase = await createClient();
+
+  const { error } =
+    await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    return NextResponse.redirect(
+      new URL("/login?error=auth", origin)
+    );
+  }
+
+  return NextResponse.redirect(redirectTo);
 }

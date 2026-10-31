@@ -1,7 +1,31 @@
 
 import { login, signup } from "./actions";
+export const instant = false;
+const errorMessages: Record<string, string> = {
+  "invalid-input": "Please check your email, password and name.",
+  "invalid-credentials": "Incorrect email or password. Please try again.",
+  "signup-failed": "Account creation failed. Please try again.",
+  configuration: "Authentication configuration is incomplete.",
+  auth: "Your confirmation link is invalid or has expired.",
+  logout: "We could not complete logout. Please try again.",
+};
 
-export default function LoginPage(_props: PageProps<"/login">) {
+const successMessages: Record<string, string> = {
+  "check-email": "Account request received. Check your email to confirm your account.",
+  "logged-out": "You have successfully logged out.",
+};
+
+export default async function LoginPage({
+  searchParams,
+}: PageProps<"/login">) {
+  const params = await searchParams;
+
+  const error =
+    typeof params.error === "string" ? params.error : "";
+
+  const message =
+    typeof params.message === "string" ? params.message : "";
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 text-white shadow-xl">
@@ -14,12 +38,32 @@ export default function LoginPage(_props: PageProps<"/login">) {
           Bring all your subscriptions into one place.
         </p>
 
+        {errorMessages[error] && (
+          <p
+            role="alert"
+            className="mt-6 rounded-lg border border-red-800 bg-red-950/50 p-3 text-sm text-red-300"
+          >
+            {errorMessages[error]}
+          </p>
+        )}
+
+        {successMessages[message] && (
+          <p
+            role="status"
+            className="mt-6 rounded-lg border border-green-800 bg-green-950/50 p-3 text-sm text-green-300"
+          >
+            {successMessages[message]}
+          </p>
+        )}
+
         <form className="mt-8 space-y-4">
+
           <input
             name="fullName"
             type="text"
             placeholder="Full name (for new accounts)"
             autoComplete="name"
+            maxLength={100}
             className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
           />
 
@@ -29,6 +73,7 @@ export default function LoginPage(_props: PageProps<"/login">) {
             placeholder="Email address"
             autoComplete="email"
             required
+            maxLength={254}
             className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
           />
 
@@ -36,6 +81,7 @@ export default function LoginPage(_props: PageProps<"/login">) {
             name="password"
             type="password"
             placeholder="Password"
+            autoComplete="current-password"
             required
             minLength={6}
             className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
@@ -56,6 +102,7 @@ export default function LoginPage(_props: PageProps<"/login">) {
           >
             Create account
           </button>
+
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-500">
