@@ -1,3 +1,4 @@
+
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -18,11 +19,11 @@ export async function createClient() {
               cookieStore.set(name, value, options);
             });
           } catch {
-            // Server Components cannot write cookies.
-            // Session refresh will be handled separately.
+            // Cookie updates are handled by the Next.js proxy.
           }
         },
       },
     }
   );
 }
+
